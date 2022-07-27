@@ -3,4 +3,4 @@ from django.db import models
 
 
 class User(AbstractUser):
-    pass
+    birthday = models.DateTimeField(auto_now=True)
