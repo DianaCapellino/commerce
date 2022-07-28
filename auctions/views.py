@@ -77,14 +77,22 @@ def create_listing(request):
         if form.is_valid():
             new_listing = form.save(commit=False)
             new_listing.user_id = request.POST["user_id"]
+            new_listing.username = User.objects.get(pk=new_listing.user_id).username
+            new_listing.current_price = new_listing.starting_bid
             new_listing.save()
             form.save_m2m()
             return HttpResponseRedirect(reverse("index"))
         else:
             return render(request, "auctions/new_listing.html", {
-                "form": listing
+                "form": form
             })
     else:
         return render(request, "auctions/new_listing.html", {
             "form": ListingForm()
         })
+
+def display_listing(request, listing_id):
+    listing = Listing.objects.get(pk=listing_id)
+    return render(request, "auctions/listing.html", {
+        "listing": listing
+    })
