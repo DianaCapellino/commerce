@@ -27,7 +27,6 @@ class Listing(models.Model):
     category = models.CharField(max_length=64, choices=CATEGORIES)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owner_user")
     username = models.CharField(max_length=64)
-    watching = models.ManyToManyField(User, blank=True, related_name="watch_users")
     starting_date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='starting date')
     closing_date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='closing date')
     is_closed = models.BooleanField(default=False)
@@ -47,6 +46,13 @@ class ListingForm(ModelForm):
             'category'
         ]
 
+
+class Watchlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="watch_users")
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="watch_listings")
+
+    def __str__(self):
+        return f"{self.user} watching {self.listing}"
 
 class Bid(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bid_users")

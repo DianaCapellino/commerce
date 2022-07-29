@@ -18,13 +18,24 @@
                 <b>Current price: USD {{ listing.current_price }}
                     (Started at USD {{ listing.starting_bid }} - Total bids: {{ bid_lenght }})</b>
                 {% if user.is_authenticated %}
-                    <form action="{% url 'new_bid' %}" method="post">
+                    <form action="{% url 'new_bid' listing.id %}" method="post">
                         {% csrf_token %}
                         <input type="number" name="bid">
                         <input class="btn btn-primary" type="submit" value="BID">
-                        <input type="hidden" name="listing_id" value="{{ listing.id }}">
                         <input type="hidden" name="user_id" value="{{ user.id }}">
                     </form>
+                    <br>
+                    {% if is_watching %}
+                        <form action="{% url 'watch' listing.id %}" method="post">
+                            {% csrf_token %}
+                            <input class="btn btn-secondary" type="submit" value="Remove from watchlist">
+                        </form>
+                    {% else %}
+                        <form action="{% url 'watch' listing.id %}" method="post">
+                            {% csrf_token %}
+                            <input class="btn btn-primary" type="submit" value="Add to watchlist">
+                        </form>
+                    {% endif %}
                 {% else %}
                     <form>
                         <input class="btn btn-secondary" type="submit" value="BID" disabled>

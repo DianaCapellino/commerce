@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from .models import User, Listing, Bid, Comment, ListingForm
+from .models import User, Listing, Bid, Comment, ListingForm, Watchlist
 
 
 # Default page with the listings
@@ -106,16 +106,26 @@ def display_listing(request, listing_id):
     bid_list = listing.bid_listings.all()
     bid_lenght = len(bid_list)
 
+    # Get the info if the user has or not the listing in the watchlist
+    user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
+    user_listing_watchlist = user_all_watchlist.filter(listing_id=listing_id)
+
+    if not user_listing_watchlist:
+        is_watching = False
+    else:
+        is_watching = True
+
     return render(request, "auctions/listing.html", {
         "listing": listing,
-        "bid_lenght": bid_lenght
+        "bid_lenght": bid_lenght,
+        "is_watching": is_watching
     })
 
 # This will create new bid when pressing BID in the listing item
-def new_bid(request):
+@login_required
+def new_bid(request, listing_id):
 
     # Get the information needed from the form
-    listing_id = request.POST["listing_id"]
     bid = float(request.POST["bid"])
     user_id = request.POST["user_id"]
 
@@ -128,7 +138,7 @@ def new_bid(request):
     bid_lenght = len(bid_list)
     
     # Check if the bid is larger than the current price
-    if (bid_lenght == 0 and bid >= listing.starting_bid) or (bid_length > 0 and bid > listing.current_price):
+    if (bid_lenght == 0 and bid >= listing.starting_bid) or (bid_lenght > 0 and bid > listing.current_price):
 
         # Create a new bid
         new_bid = Bid(user_id=user, listing_id=listing, amount=bid)
@@ -143,6 +153,40 @@ def new_bid(request):
     else:
         return HttpResponseRedirect(reverse("error"))
 
+# It is called when pressing "Add to watchlist" in listing
+@login_required
+def watch(request, listing_id):
+    if request.method == "POST":
+        user_id = request.user.id
+        listing = Listing.objects.get(pk=listing_id)
+        user = User.objects.get(pk=user_id)
+        
+        user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
+        user_listing_watchlist = user_all_watchlist.filter(listing_id=listing_id)
+
+        if not user_listing_watchlist:
+            new_watcher = Watchlist(user_id=user_id, listing_id=listing_id)
+            new_watcher.save()
+        else:          
+            old_watcher = user_listing_watchlist
+            old_watcher.delete()
+
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+
+@login_required
+def watchlist(request):
+
+    user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
+
+    user_watchlist = []
+    for listing in user_all_watchlist:
+        user_watchlist.append(Listing.objects.get(pk=listing.listing_id))
+
+
+    return render(request, "auctions/watchlist.html", {
+        "watchlist": user_watchlist
+    })
+    
 def error(request):
     return render(request, "auctions/error.html", {
         "message": "Your bid should be at least larger than the current price or equal to the starting bid."
