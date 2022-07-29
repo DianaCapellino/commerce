@@ -5,21 +5,48 @@
     <h2>Listing: {{ listing.title }}</h2>
 
     <div class="card text card-custom mb-4" style="width: 40rem;">
-            <img class="card-img-top" src="{{ listing.image_url }}" alt="No image." width="50%">
-            <div class="card-body">
-                <h5 class="card-title">{{ listing.title }}</h5>
-                <p class="card-text">
-                    <small class="text-muted">Published by: {{ listing.username }}</small>
-                </p>
-                <p class="card-text card-description">
-                    {{ listing.description }}
-                </p>
-
-                <p>
-                    <b>Current price: USD {{ listing.current_price }} (Started at USD {{ listing.starting_bid }})</b>
-                </p>
-                <a href="{% url 'index' %}">Return to all the listings</a>
-            </div>
+        <img class="card-img-top" src="{{ listing.image_url }}" alt="No image." width="50%">
+        <div class="card-body">
+            <h5 class="card-title">{{ listing.title }}</h5>
+            <p class="card-text">
+                <small class="text-muted">Published by: {{ listing.username }}</small>
+            </p>
+            <p class="card-text card-description">
+                {{ listing.description }}
+            </p>
+            <p>
+                <b>Current price: USD {{ listing.current_price }}
+                    (Started at USD {{ listing.starting_bid }} - Total bids: {{ bid_lenght }})</b>
+                {% if user.is_authenticated %}
+                    <form action="{% url 'new_bid' %}" method="post">
+                        {% csrf_token %}
+                        <input type="number" name="bid">
+                        <input class="btn btn-primary" type="submit" value="BID">
+                        <input type="hidden" name="listing_id" value="{{ listing.id }}">
+                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                    </form>
+                {% else %}
+                    <form>
+                        <input class="btn btn-secondary" type="submit" value="BID" disabled>
+                    </form> <b><a href="{% url 'login' %}">Sign in</a> to bid or add to watchlist.</b>
+                {% endif %}
+            </p>
+            <p>
+                Listing started at: {{ listing.starting_date }}
+            </p>
+            <p>
+                <b>Category:</b>
+                {% if listing.category %}
+                {{ listing.category }}
+                {% else %}
+                No category Listed.
+                {% endif %}
+            </p>
+            <br>
+            <a href="{% url 'index' %}">Return to all the listings</a>
+            <hr>
+            <h2>Comments:</h2>
+            <hr>
         </div>
     </div>
 

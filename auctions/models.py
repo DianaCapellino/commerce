@@ -4,23 +4,19 @@ import django.utils.timezone
 from django.forms import ModelForm
 
 CATEGORIES = [
-    ("1", "Toys"),
-    ("2", "Fashion"),
-    ("3", "Electronics"),
-    ("4", "Home"),
-    ("5", "Pets"),
-    ("6", "Others")
+    ("Toys", "Toys"),
+    ("Fashion", "Fashion"),
+    ("Electronics", "Electronics"),
+    ("Home", "Home"),
+    ("Pets", "Pets"),
+    ("Others", "Others")
 ]
 
-def user_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-    return 'user_{0}/{1}'.format(instance.user.id, filename)
-
 class User(AbstractUser):
-    birthday = models.DateTimeField(blank=True, null=True)
-    
+
     def __str__(self):
-        return f"{self.username}: {self.first_name} {self.last_name}"
+        return f"{self.username}"
+
 
 class Listing(models.Model):
     title = models.CharField(max_length=64)
@@ -31,12 +27,14 @@ class Listing(models.Model):
     category = models.CharField(max_length=64, choices=CATEGORIES)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owner_user")
     username = models.CharField(max_length=64)
+    watching = models.ManyToManyField(User, blank=True, related_name="watch_users")
     starting_date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='starting date')
     closing_date = models.DateTimeField(default=django.utils.timezone.now, verbose_name='closing date')
     is_closed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title}"
+
 
 class ListingForm(ModelForm):
     class Meta:
@@ -49,11 +47,21 @@ class ListingForm(ModelForm):
             'category'
         ]
 
+
 class Bid(models.Model):
-    pass
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bid_users")
+    listing_id = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="bid_listings")
+    amount = models.FloatField()
+    date = models.DateTimeField(auto_now=True, verbose_name='bid_date')
+
+    def __str__(self):
+        return f"USD {self.amount}"
+
 
 class Comment(models.Model):
-    pass
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comment_users")
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="comment_listings")
+    comment = models.CharField(max_length=512)
 
-class Watchlist(models.Model):
-    pass
+    def __str__(self):
+        return f"{self.comment} (by: {self.user})"

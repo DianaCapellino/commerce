@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from .models import User, Listing, Bid, Comment, Watchlist, ListingForm
+from .models import User, Listing, Bid, Comment, ListingForm
 
 
 # Default page with the listings
@@ -57,7 +57,6 @@ def register(request):
         # Attempt to create new user
         try:
             user = User.objects.create_user(username, email, password)
-            user.birthday = birthday
             user.save()
         except IntegrityError:
             return render(request, "auctions/register.html", {
@@ -70,6 +69,8 @@ def register(request):
 
 @login_required
 def create_listing(request):
+    
+    # If method is POST it will create the new listing with the user id
     if request.method == "POST":
 
         form = ListingForm(request.POST)
@@ -81,18 +82,68 @@ def create_listing(request):
             new_listing.current_price = new_listing.starting_bid
             new_listing.save()
             form.save_m2m()
+
+            # After saving the listing it redirects to the main page
             return HttpResponseRedirect(reverse("index"))
+        
+        # If there are any errors in the form, it will display the form again
         else:
             return render(request, "auctions/new_listing.html", {
                 "form": form
             })
+    
+    # If method is GET it displays the form to add new listing
     else:
         return render(request, "auctions/new_listing.html", {
             "form": ListingForm()
         })
 
+# This is the function to display particular listing with id
 def display_listing(request, listing_id):
     listing = Listing.objects.get(pk=listing_id)
+
+    # Get the quantity of bids for that listing to display later
+    bid_list = listing.bid_listings.all()
+    bid_lenght = len(bid_list)
+
     return render(request, "auctions/listing.html", {
-        "listing": listing
+        "listing": listing,
+        "bid_lenght": bid_lenght
+    })
+
+# This will create new bid when pressing BID in the listing item
+def new_bid(request):
+
+    # Get the information needed from the form
+    listing_id = request.POST["listing_id"]
+    bid = float(request.POST["bid"])
+    user_id = request.POST["user_id"]
+
+    # Get the objects from the id got in the form
+    listing = Listing.objects.get(pk=listing_id)
+    user = User.objects.get(pk=user_id)
+
+    # Get the list of bids and the lenght
+    bid_list = listing.bid_listings.all()
+    bid_lenght = len(bid_list)
+    
+    # Check if the bid is larger than the current price
+    if (bid_lenght == 0 and bid >= listing.starting_bid) or (bid_length > 0 and bid > listing.current_price):
+
+        # Create a new bid
+        new_bid = Bid(user_id=user, listing_id=listing, amount=bid)
+        new_bid.save()
+
+        # Update current price in the listing
+        listing.current_price = bid
+        listing.save()
+
+        # Redirect to Listing to see updated rate
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+    else:
+        return HttpResponseRedirect(reverse("error"))
+
+def error(request):
+    return render(request, "auctions/error.html", {
+        "message": "Your bid should be at least larger than the current price or equal to the starting bid."
     })
