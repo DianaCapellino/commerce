@@ -108,9 +108,19 @@ def display_listing(request, listing_id):
     bid_list = listing.bid_listings.all()
     bid_lenght = len(bid_list)
 
-    # Get the higher bid and the current winner
-    bid_higher = listing.bid_listings.latest("amount")
-    bid_winner = bid_higher.user_id
+    if bid_lenght != 0:
+        # Get the higher bid and the current winner
+        bid_higher = listing.bid_listings.latest("amount")
+        bid_winner = bid_higher.user_id
+
+        # Check if the user is the current winner
+        if bid_winner == request.user:
+            is_winner = True
+        else:
+            is_winner = False
+    else:
+        bid_winner = None
+        is_winner = False
 
     # Get the info if the user has or not the listing in the watchlist
     user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
@@ -127,12 +137,6 @@ def display_listing(request, listing_id):
         is_owner = True
     else:
         is_owner = False
-
-    # Check if the user is the current winner
-    if bid_winner == request.user:
-        is_winner = True
-    else:
-        is_winner = False
 
     # Send the information to the page to display it
     return render(request, "auctions/listing.html", {
@@ -223,7 +227,6 @@ def watchlist(request):
 
 
 def categories(request):
-
     # If the request is POST
     if request.method == "POST":
 
