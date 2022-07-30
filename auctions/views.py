@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from .models import User, Listing, Bid, Comment, ListingForm, Watchlist
+from .models import User, Listing, Bid, Comment, ListingForm, Watchlist, CATEGORIES
 
 
 # Default page with the listings
@@ -106,19 +106,41 @@ def display_listing(request, listing_id):
     bid_list = listing.bid_listings.all()
     bid_lenght = len(bid_list)
 
+    # Get the higher bid and the current winner
+    bid_higher = listing.bid_listings.latest("amount")
+    bid_winner = bid_higher.user_id
+
     # Get the info if the user has or not the listing in the watchlist
     user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
     user_listing_watchlist = user_all_watchlist.filter(listing_id=listing_id)
 
+    # If the filtered list has no results then the user is not watching that item
     if not user_listing_watchlist:
         is_watching = False
     else:
         is_watching = True
 
+    # Check if the user is the owner of the listing
+    if listing.user == request.user:
+        is_owner = True
+    else:
+        is_owner = False
+
+    # Check if the user is the current winner
+    if bid_winner == request.user:
+        is_winner = True
+    else:
+        is_winner = False
+
+    # Send the information to the page to display it
     return render(request, "auctions/listing.html", {
         "listing": listing,
         "bid_lenght": bid_lenght,
-        "is_watching": is_watching
+        "is_watching": is_watching,
+        "is_owner": is_owner,
+        "is_winner": is_winner,
+        "bid_winner": bid_winner,
+        "comments": Comment.objects.filter(listing_id=listing_id)
     })
 
 # This will create new bid when pressing BID in the listing item
@@ -153,40 +175,104 @@ def new_bid(request, listing_id):
     else:
         return HttpResponseRedirect(reverse("error"))
 
+
 # It is called when pressing "Add to watchlist" in listing
 @login_required
 def watch(request, listing_id):
     if request.method == "POST":
+        # Get the information of the user and listing objects
         user_id = request.user.id
         listing = Listing.objects.get(pk=listing_id)
         user = User.objects.get(pk=user_id)
         
+        # Get the list of watching objects by user_id and listing_id
         user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
         user_listing_watchlist = user_all_watchlist.filter(listing_id=listing_id)
 
+        # If the list filtered by user and listing is empty, it will create a new item
         if not user_listing_watchlist:
             new_watcher = Watchlist(user_id=user_id, listing_id=listing_id)
             new_watcher.save()
+        
+        # If the list has an item with the same user_id and listing_id it will remove it
         else:          
             old_watcher = user_listing_watchlist
             old_watcher.delete()
 
         return HttpResponseRedirect(reverse("listing", args=(listing_id)))
 
+
 @login_required
 def watchlist(request):
 
+    # Get the list of the user watchlist items
     user_all_watchlist = Watchlist.objects.filter(user_id=request.user.id)
 
+    # Use a list to save the objects of the listing
     user_watchlist = []
     for listing in user_all_watchlist:
         user_watchlist.append(Listing.objects.get(pk=listing.listing_id))
 
-
+    # Render the watching list with the user listings
     return render(request, "auctions/watchlist.html", {
         "watchlist": user_watchlist
     })
+
+
+def categories(request):
+    category_list = []
+
+    for i in range(len(CATEGORIES)):
+        category_list.append(CATEGORIES[i][0])
+
+    if request.method == "POST":
+        user_category = request.POST["category"]
+
+        for i in range(len(CATEGORIES)):
+            if user_category == CATEGORIES[i][0]:
+                category = CATEGORIES[i]
+
+        category_listings = Listing.objects.filter(category=category)
+        print(f"{category_listings}")
+        
+        return render(request, "auctions/categories.html", {
+        "category_listings": category_listings,
+        "category_list": category_list
+    })
+    else:
+
+        category_listings = None
+
+        return render(request, "auctions/categories.html", {
+            "category_listings": category_listings,
+            "category_list": category_list
+        })
+
+
+@login_required
+def close(request, listing_id):
+
+    listing = Listing.objects.get(pk=listing_id)
+    if int(request.user.id) == (listing.user.id):
+        listing.is_closed = True
+        listing.save()
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+    else:
+        return HttpResponse(f"You are not the owner! The owner is {listing.user}. You are {request.user}.")
+
+@login_required
+def add_comment(request, listing_id):
+    if request.method == "POST":
+        new_comment = request.POST["comment"]
+        listing = Listing.objects.get(pk=listing_id)
+        user = request.user
+
+        comment = Comment(user=user, listing=listing, comment=new_comment)
+        comment.save()
+
+        return HttpResponseRedirect(reverse("listing", args=(listing_id)))
     
+# Message error for the bids
 def error(request):
     return render(request, "auctions/error.html", {
         "message": "Your bid should be at least larger than the current price or equal to the starting bid."

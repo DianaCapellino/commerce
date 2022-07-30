@@ -18,23 +18,39 @@
                 <b>Current price: USD {{ listing.current_price }}
                     (Started at USD {{ listing.starting_bid }} - Total bids: {{ bid_lenght }})</b>
                 {% if user.is_authenticated %}
-                    <form action="{% url 'new_bid' listing.id %}" method="post">
-                        {% csrf_token %}
-                        <input type="number" name="bid">
-                        <input class="btn btn-primary" type="submit" value="BID">
-                        <input type="hidden" name="user_id" value="{{ user.id }}">
-                    </form>
-                    <br>
-                    {% if is_watching %}
-                        <form action="{% url 'watch' listing.id %}" method="post">
+                    {% if not is_owner and not listing.is_closed %}
+                        <form action="{% url 'new_bid' listing.id %}" method="post">
                             {% csrf_token %}
-                            <input class="btn btn-secondary" type="submit" value="Remove from watchlist">
+                            <input class="form-control" type="number" name="bid">
+                            <br>
+                            <input class="btn btn-primary" type="submit" value="BID">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
                         </form>
+                        <br>
+                        {% if is_watching %}
+                            <form action="{% url 'watch' listing.id %}" method="post">
+                                {% csrf_token %}
+                                <input class="btn btn-secondary" type="submit" value="Remove from watchlist">
+                            </form>
+                        {% else %}
+                            <form action="{% url 'watch' listing.id %}" method="post">
+                                {% csrf_token %}
+                                <input class="btn btn-primary" type="submit" value="Add to watchlist">
+                            </form>                        
+                        {% endif %}
+                    {% elif is_owner and not listing.is_closed %}
+                        <form action="{% url 'close' listing.id %}" method="post">
+                            {% csrf_token %}
+                            <input class="btn btn-primary" type="submit" value="Close Auction">
+                        </form>
+                    {% elif is_winner and listing.is_closed %}
+                         <h2>You are the winner, {{ bid_winner }}. Congratulations!!!</h2>
                     {% else %}
-                        <form action="{% url 'watch' listing.id %}" method="post">
+                        <form action="{% url 'close' listing.id %}" method="post">
                             {% csrf_token %}
-                            <input class="btn btn-primary" type="submit" value="Add to watchlist">
+                            <input class="btn btn-secondary" type="submit" value="Closed Auction" disabled>
                         </form>
+                        <p>The winner was: {{ bid_winner }}</p>
                     {% endif %}
                 {% else %}
                     <form>
@@ -58,6 +74,20 @@
             <hr>
             <h2>Comments:</h2>
             <hr>
+            {% if user.is_authenticated and not listing.is_closed %}
+                <form action="{% url 'add_comment' listing.id %}" method="post">
+                    {% csrf_token %}
+                    <input class="form-control" type="text" name="comment">
+                    <br>
+                    <input class="btn btn-primary" type="submit" value="Add comment">
+                    <b>Signed in as <i>{{ user.username }}</i></b>
+                </form>
+                <br>
+            {% endif %}
+                {% for comment in comments %}
+                    <div><b>{{ comment.user }} ({{ comment.date }}): </b><i>{{ comment.comment }}</i></div>
+                {% endfor %}
+
         </div>
     </div>
 

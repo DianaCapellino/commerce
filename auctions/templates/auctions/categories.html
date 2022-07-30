@@ -1,0 +1,50 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+
+    {% if not category_listings %}
+        <form action="{% url 'categories' %}" method="post">
+            {% csrf_token %}
+            <select class="form-control" type="text" name="category">
+                {% for category in category_list %}
+                    <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <input class="btn btn-primary" type="submit" value="Search category">
+        </form>
+
+    {% else %}
+        <h2>Filtered categories: </h2>
+
+            {% for listing in category_listings %}
+                {% if not listing.is_closed %}
+                    <div class="card text card-custom mb-4">
+                        <div class="row no-gutters">
+                            
+                            <div class="col-md-4">
+                                <a href="{% url 'listing' listing.id %}">
+                                <img class="card-img" src="{{ listing.image_url }}" alt="No image.">
+                                </a>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <a href="{% url 'listing' listing.id %}"><h5 class="card-title">{{ listing.title }}</h5></a>
+                                    <p class="card-text">
+                                        <small class="text-muted">Published by: {{ listing.username }}</small>
+                                    </p>
+                                    <p class="card-text card-description">
+                                        {{ listing.description }}
+                                    </p>
+                                    <p>
+                                        <b>Current price: USD {{ listing.current_price }}</b>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+{% endblock %}

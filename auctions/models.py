@@ -68,6 +68,7 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comment_users")
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="comment_listings")
     comment = models.CharField(max_length=512)
+    date = models.DateTimeField(auto_now=True, verbose_name='comment_date')
 
     def __str__(self):
         return f"{self.comment} (by: {self.user})"
