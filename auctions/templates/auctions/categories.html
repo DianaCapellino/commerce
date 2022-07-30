@@ -2,20 +2,19 @@
 
 {% block body %}
 
-    {% if not category_listings %}
-        <form action="{% url 'categories' %}" method="post">
-            {% csrf_token %}
-            <select class="form-control" type="text" name="category">
-                {% for category in category_list %}
-                    <option value="{{ category }}">{{ category }}</option>
-                {% endfor %}
-            </select>
-            <br>
-            <input class="btn btn-primary" type="submit" value="Search category">
-        </form>
+    <form action="{% url 'categories' %}" method="post">
+        {% csrf_token %}
+        <select class="form-control" type="text" name="category">
+            {% for category in category_list %}
+                <option value="{{ category.0 }}">{{ category.0 }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <input class="btn btn-primary" type="submit" value="Search category">
+    </form>
 
-    {% else %}
-        <h2>Filtered categories: </h2>
+    {% if category %}
+        <h2>Filtered categories: {{ category }}</h2>
 
             {% for listing in category_listings %}
                 {% if not listing.is_closed %}
@@ -45,6 +44,6 @@
                     </div>
                 {% endif %}
             {% endfor %}
-        {% endif %}
+    {% endif %}
 
 {% endblock %}

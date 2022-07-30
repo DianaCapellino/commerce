@@ -67,6 +67,7 @@ def register(request):
     else:
         return render(request, "auctions/register.html")
 
+
 @login_required
 def create_listing(request):
     
@@ -97,6 +98,7 @@ def create_listing(request):
         return render(request, "auctions/new_listing.html", {
             "form": ListingForm()
         })
+
 
 # This is the function to display particular listing with id
 def display_listing(request, listing_id):
@@ -142,6 +144,7 @@ def display_listing(request, listing_id):
         "bid_winner": bid_winner,
         "comments": Comment.objects.filter(listing_id=listing_id)
     })
+
 
 # This will create new bid when pressing BID in the listing item
 @login_required
@@ -220,58 +223,72 @@ def watchlist(request):
 
 
 def categories(request):
-    category_list = []
 
-    for i in range(len(CATEGORIES)):
-        category_list.append(CATEGORIES[i][0])
-
+    # If the request is POST
     if request.method == "POST":
+
+        # It gets the category selected by the user
         user_category = request.POST["category"]
 
+        # With the name, gets the tuple from the category
         for i in range(len(CATEGORIES)):
             if user_category == CATEGORIES[i][0]:
-                category = CATEGORIES[i]
+                category = CATEGORIES[i][0]
 
+        # Used the category object to get the information of the listings
         category_listings = Listing.objects.filter(category=category)
-        print(f"{category_listings}")
         
+        # Render the page again but with the listing filtered by category
         return render(request, "auctions/categories.html", {
         "category_listings": category_listings,
-        "category_list": category_list
+        "category_list": CATEGORIES,
+        "category": category
     })
+
+    # If the request is GET the user get the page with the list to select category
     else:
-
-        category_listings = None
-
         return render(request, "auctions/categories.html", {
-            "category_listings": category_listings,
-            "category_list": category_list
+            "category_list": CATEGORIES
         })
 
 
 @login_required
 def close(request, listing_id):
 
+    # It gets the listing object with the listing_id
     listing = Listing.objects.get(pk=listing_id)
+
+    # It validates that the user is the owner of the listing
     if int(request.user.id) == (listing.user.id):
+
+        # If passes validation, closes the listing and return to listing page
         listing.is_closed = True
         listing.save()
         return HttpResponseRedirect(reverse("listing", args=(listing_id)))
+    
+    # If user owner doesnt match it brings a message error
     else:
         return HttpResponse(f"You are not the owner! The owner is {listing.user}. You are {request.user}.")
 
+
 @login_required
 def add_comment(request, listing_id):
+
+    # When submitting the comment
     if request.method == "POST":
+
+        # Get the information of the comment provided and listing_id and user from the page
         new_comment = request.POST["comment"]
         listing = Listing.objects.get(pk=listing_id)
         user = request.user
 
+        # It creates the comment and redirect to the listing page
         comment = Comment(user=user, listing=listing, comment=new_comment)
         comment.save()
 
         return HttpResponseRedirect(reverse("listing", args=(listing_id)))
     
+
 # Message error for the bids
 def error(request):
     return render(request, "auctions/error.html", {
